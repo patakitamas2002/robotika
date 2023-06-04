@@ -1,7 +1,7 @@
 #define potL 0
 #define potR 1
-#define btnL 2
-#define btnR 3
+#define btnL 3
+#define btnR 2
 
 #include <SPI.h>
 #include <nRF24L01.h>
@@ -55,7 +55,6 @@ void setup() {
   radio.openReadingPipe(1, addresses[0]); // 00001
   radio.setPALevel(RF24_PA_MIN);
   delay(1000);
-  Serial.print("Hello world");
 }
 
 
@@ -101,7 +100,7 @@ void loop()  {
   display.println(trans.potRVal);
   display.setCursor(0, 20);
   display.println(turretVal);
-  display.setCursor(0, 20);
+  display.setCursor(0, 30);
   display.println(recieve.dist);
   display.display();
   display.clearDisplay();
