@@ -2,6 +2,7 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 #include <Servo.h>
+#include <SRF05.h>
 
 #define button 4
 #define Rin1 1 
@@ -10,6 +11,9 @@
 #define Lin2 5
 #define Ren 6
 #define Len 7
+#define echo_pin 4
+#define trig_pin 6
+
 
 
 
@@ -33,12 +37,16 @@ Tank trans;
 
 
 void setup() {
+  
   pinMode(button, INPUT);
+  pinMode(trig_pin, OUTPUT);
+  pinMode(echo_pin, INPUT);
   myServo.attach(5);
   radio.begin();
   radio.openWritingPipe(addresses[0]); // 00001
   radio.openReadingPipe(1, addresses[1]); // 00002
   radio.setPALevel(RF24_PA_MIN);
+  Serial.begin(115200);
 }
 
 void loop() {
@@ -84,6 +92,23 @@ void loop() {
    
   delay(15);
   radio.stopListening();
+  //Distance control
+  digitalWrite(trig_pin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig_pin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig_pin, LOW);
   
-  
+
+ const unsigned long duration= pulseIn(echo_pin, HIGH);
+ int distance= duration/29/2;
+ if(duration==0){
+   Serial.println("Warning: no pulse from sensor");
+   } 
+  else{
+      Serial.print("distance to nearest object:");
+      Serial.println(distance);
+      Serial.println(" cm");
+  }
+ delay(100);
 }
