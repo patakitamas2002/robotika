@@ -110,12 +110,16 @@ void loop() {
   display.setTextSize(1);             
   display.setTextColor(WHITE); 
   display.setCursor(0, 0);
+  display.print("LTr: ");
   display.println(recieve.potLVal);
   display.setCursor(0, 10);
+  display.print("RTr: ");
   display.println(recieve.potRVal);
   display.setCursor(0, 20);
+  display.print("Trt: ");
   display.println(recieve.turretVal);
   display.setCursor(0, 30);
+  display.print("Rng: ");
   display.println(distance); display.print(" cm");
   display.display();
   display.clearDisplay();
