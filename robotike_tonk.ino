@@ -3,112 +3,121 @@
 #include <RF24.h>
 #include <Servo.h>
 #include <SRF05.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
-#define button 4
+
 #define Rin1 1 
-#define Rin2 2
-#define Lin1 3 
-#define Lin2 5
-#define Ren 6
+#define Rin2 7
+#define Lin1 0 
+#define Lin2 10
+#define Ren 2
 #define Len 7
 #define echo_pin 4
 #define trig_pin 6
 
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 
-
-RF24 radio(7, 8); // CE, CSN
-const byte addresses[][6] = {"tonk1", "tonk2"};
+RF24 radio(9, 8); // CE, CSN
+const byte address[6] = "tank1";
 Servo myServo;
-byte turret = 0;
 
 struct Controller {
-  byte potLVal = 0;
-  byte potRVal= 0;
-  byte turretVal = 0;
-};
-struct Tank {
-  byte dist = 0;
-  int turret = -90;
+  int potLVal;
+  int potRVal;
+  byte turretVal;
 };
 
 Controller recieve;
-Tank trans;
 
 
 void setup() {
-  
-  pinMode(button, INPUT);
+  Serial.begin(9600);
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
   pinMode(trig_pin, OUTPUT);
   pinMode(echo_pin, INPUT);
   myServo.attach(5);
+  display.clearDisplay();
+  display.display();
   radio.begin();
-  radio.openWritingPipe(addresses[0]); // 00001
-  radio.openReadingPipe(1, addresses[1]); // 00002
+  radio.openReadingPipe(0, address);
   radio.setPALevel(RF24_PA_MIN);
-  Serial.begin(115200);
+  radio.startListening();
 }
 
 void loop() {
-  
-  delay(15);
-  radio.startListening();
+  //Serial.peek();
+  //Serial.begin(115200);
   if (radio.available()) {
     radio.read(&recieve, sizeof(Controller)); // Read the whole data and store it into the 'data' structure
-  }  
+    //Serial.println("Radio is available");
+  }
 
-  
+  int potLval = map(recieve.potLVal,0,1023,0,255);
+  int potRval = map(recieve.potRVal,0,1023,0,255);
+  Serial.println(recieve.turretVal);
   myServo.write(recieve.turretVal);
-
-  //Left track control
-  if(recieve.potLVal < 110) {
-    digitalWrite(Lin1, LOW);
-    digitalWrite(Lin2, HIGH);
-    analogWrite(Len, recieve.potLVal);
-  }
-  if(recieve.potLVal > 140) {
-    digitalWrite(Lin1, HIGH);
-    digitalWrite(Lin2, LOW);
-    analogWrite(Len, recieve.potLVal);
-  }
-  if(recieve.potLVal < 140 && recieve.potLVal > 110){
-    digitalWrite(Len, LOW);
-  }
-
-  //Right track control
-  if(recieve.potRVal < 110) {
-    digitalWrite(Rin1, LOW);
-    digitalWrite(Rin2, HIGH);
-    analogWrite(Ren ,recieve.potRVal);
-  }
-  if(recieve.potRVal > 140) {
-    digitalWrite(Rin1, HIGH);
-    digitalWrite(Rin2, LOW);
-    analogWrite(Ren ,recieve.potRVal);
-  }
-  if(recieve.potRVal < 140 && recieve.potRVal > 110){
-    digitalWrite(Ren, LOW);
-  }
-   
-  delay(15);
-  radio.stopListening();
-  //Distance control
   digitalWrite(trig_pin, LOW);
   delayMicroseconds(2);
   digitalWrite(trig_pin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trig_pin, LOW);
-  
 
+  //Left track control
+  if(potLval < 110) {
+    digitalWrite(Lin1, LOW);
+    digitalWrite(Lin2, HIGH);
+    analogWrite(Len, potLval);
+  }
+  if(potLval > 140) {
+    digitalWrite(Lin1, HIGH);
+    digitalWrite(Lin2, LOW);
+    analogWrite(Len,potLval);
+  }
+  if(potLval < 140 && potLval > 110){
+    digitalWrite(Len, LOW);
+  }
+
+  //Right track control
+  if(potRval < 110) {
+    digitalWrite(Rin1, LOW);
+    digitalWrite(Rin2, HIGH);
+    analogWrite(Ren ,potRval);
+  }
+  if(potRval > 140) {
+    digitalWrite(Rin1, HIGH);
+    digitalWrite(Rin2, LOW);
+    analogWrite(Ren ,potRval);
+  }
+  if(potRval < 140 && potRval > 110){
+    digitalWrite(Ren, LOW);
+  }
+   
+  delay(15);
  const unsigned long duration= pulseIn(echo_pin, HIGH);
  int distance= duration/29/2;
- if(duration==0){
-   Serial.println("Warning: no pulse from sensor");
-   } 
-  else{
-      Serial.print("distance to nearest object:");
-      Serial.println(distance);
-      Serial.println(" cm");
-  }
- delay(100);
+  display.drawRect(84, 11, 24, 42, WHITE);
+  display.drawCircle(96, 28, 11, WHITE);
+  display.drawLine(96, 28, 96+map(recieve.turretVal-90, -90, 90, -28 ,28), map(abs(90-recieve.turretVal), 0, 90, 0 ,28), WHITE);
+  display.setTextSize(1);             
+  display.setTextColor(WHITE); 
+  display.setCursor(0, 0);
+  display.println(recieve.potLVal);
+  display.setCursor(0, 10);
+  display.println(recieve.potRVal);
+  display.setCursor(0, 20);
+  display.println(recieve.turretVal);
+  display.setCursor(0, 30);
+  display.println(distance); display.print(" cm");
+  display.display();
+  display.clearDisplay();
+  //delay(100);
 }
